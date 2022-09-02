@@ -68,8 +68,7 @@ def print_oi(num,step,nearest,url):
 
     return s
 
-response1 = get_data(url_nf)
-display(response1);
+display(get_data(url_nf))
 
 # t =10000000000
 # while(t>0):

@@ -4,6 +4,8 @@ import json
 import math
 import  datetime as dt
 
+import display
+
 
 m1=0
 
@@ -66,9 +68,8 @@ def print_oi(num,step,nearest,url):
 
     return s
 
+display(get_data(url_nf))
 
-
-
-t =10000000000
-while(t>0):
-    m1=print_oi(10,50,17600,url_nf)
+# t =10000000000
+# while(t>0):
+#     m1=print_oi(10,50,17600,url_nf)

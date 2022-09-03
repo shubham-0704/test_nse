@@ -3,16 +3,15 @@ import requests
 import json
 import math
 import  datetime as dt
-
+import time
 import display
 
 
-m1=0
-
 # Method to get nearest strikes
-def round_nearest(x,num=50): return int(math.ceil(float(x)/num)*num)
-def nearest_strike_bnf(x): return round_nearest(x,100)
-def nearest_strike_nf(x): return round_nearest(x,50)
+# Method to get nearest strikes
+def round_nearest(x,num=10): return int(math.floor(float(x+num/2)/num)*num)
+def atm_bnf(x): return round_nearest(x,100)
+def atm_nf(x): return round_nearest(x,50)
 
 # Urls for fetching Data
 url_oc      = "https://www.nseindia.com/option-chain"
@@ -44,32 +43,69 @@ def get_data(url):
     return ""
 
 
-# Fetching CE and PE data based on Nearest Expiry Date
-def print_oi(num,step,nearest,url):
-    strike = nearest - (step*num)
-    start_strike = nearest - (step*num)
+stike_p = None
+Oi_change =None
+start_strike=None
+end_strike=None
+
+
+dic ={"time":[], "PE":{},"CE":{},"exp_date":None}
+
+first_run =True
+
+def get_oi(url):
+    global stike_p
+
+    global start_strike
+    global end_strike
     response_text = get_data(url)
     data = json.loads(response_text)
-    currExpiryDate = data["records"]["expiryDates"][0]
 
-    oi = data["filtered"]["data"][72]["PE"]["changeinOpenInterest"]
+    price =data["records"]["underlyingValue"]
+    atm = atm_nf(price)
+    atm_index = int((atm-data["filtered"]["data"][0]["strikePrice"])/50)
 
+    atm_oi_change=data["filtered"]["data"][atm_index]["PE"]["changeinOpenInterest"]
+    global first_run
+    if first_run==True:
+        currExpiryDate = data["records"]["expiryDates"][0]
+        dic["exp_date"]=currExpiryDate
+        global strike_p
+        strike_p=atm
+        start_strike = data["filtered"]["data"][atm_index-29]["strikePrice"]
+        end_strike=data["filtered"]["data"][atm_index+29]["strikePrice"]
+        first_run=False
+        for i in range(start_strike,end_strike+50,50):
+          dic["CE"][i]=[]
+          dic["PE"][i]=[]
 
-    s=m1
-
-    if s !=oi:
+    
+    
+    indx = int((strike_p - data["filtered"]["data"][0]["strikePrice"])/50)
+    oi = data["filtered"]["data"][indx]["PE"]["changeinOpenInterest"]
+    print(Oi_change,oi,indx)
+    if  Oi_change!=oi:
         now = dt.datetime.now()
-
         current_time = now.strftime("%H:%M:%S")
-        print("Current Time =", current_time)
-        s=oi
-        print(s)
-        
+        dic["time"].append(current_time)
+        strike_p=atm
+        start = int((start_strike - data["filtered"]["data"][0]["strikePrice"])/50)
+        for i in range(start,start+59):
+          sp=data["filtered"]["data"][i]["strikePrice"]
+          dic["PE"][sp].append(data["filtered"]["data"][i]["PE"]["openInterest"])
+          dic["CE"][sp].append(data["filtered"]["data"][i]["CE"]["openInterest"])
 
-    return s
+    time.sleep(2)
 
-display(get_data(url_nf))
+    return atm_oi_change
 
-# t =10000000000
-# while(t>0):
-#     m1=print_oi(10,50,17600,url_nf)
+
+# while(1):
+#   Oi_change=get_oi(url_nf)
+
+
+
+if __name__ =="__main__":
+    display(get_data(url_nf))
+
+
